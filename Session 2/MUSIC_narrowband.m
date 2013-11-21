@@ -6,6 +6,10 @@ addpath(genpath('..'));
 % user defined file names of the WAV files to use for sources and noise
 load('Computed_RIRs.mat');
 
+if(fs_RIR ~= 44100)
+    error('fs RIR = %d, terwijl het 44.1kHz moet zijn', fs_RIR);
+end
+
 %Number of files
 N_speech = size(s_pos,1);
 N_noise = size(v_pos,1);
@@ -29,11 +33,11 @@ mic = zeros(NrOfSamples,NrOfMics);
 
 % read in all speech and noise audiofiles
 for i =1:N_speech
-    [speechfilename{i,2}, speechfilename{i,3}] = audioread(speechfilename{i,1});
+    [speechfilename{i,2}, speechfilename{i,3}] = wavread(speechfilename{i,1});
 end
 
 for i =1:N_noise
-    [noisefilename{i,2}, noisefilename{i,3}] = audioread(noisefilename{i,1});
+    [noisefilename{i,2}, noisefilename{i,3}] = wavread(noisefilename{i,1});
 end
 
 % resample of speech and noise files and cut off to number of samples
@@ -70,5 +74,33 @@ plot(mic(:,2),'b');
 hold off
 
 %% Short Time Fouriet Transform
+window = 1024;
+noverlap = window/2;
+nfft = 1024;
+NrOfFrames = fix((length(mic(:,1))-noverlap)/(window-noverlap));
+NrOfBins = nfft/2 + 1;
+S = zeros(NrOfBins,NrOfFrames,NrOfMics);
+% F = zeros(NrOfBins,NrOfFrames,NrOfMics);
+% T = zeros(NrOfBins,NrOfFrames,NrOfMics);
+P = zeros(NrOfBins,NrOfFrames,NrOfMics);
 
+for i = 1:NrOfMics
+x = mic(:,i);
+[S(:,:,i),F,~,P(:,:,i)]= spectrogram(x,window,noverlap,nfft,fs_RIR);
+end
 
+P_total = zeros(NrOfBins,NrOfMics);
+%average out time
+for i = 1:NrOfMics
+    for j =1:NrOfFrames
+     P_total(:,i) = P_total(:,i) + P(:,j,i);
+    end
+end
+%average out mics
+P_total = mean(P_total,2);
+
+[~,maxFreqBin] = max(P_total);
+maxOmega = 2*pi*F(maxFreqBin);
+
+%% DOA
+corrMatrix = mic*mic.';

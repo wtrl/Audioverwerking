@@ -21,7 +21,7 @@ function [] = mySA_GUI()
 % KU Leuven, Department of Electrical Engineering (ESAT/SCD)
 % email: giuliano.bernardi@esat.kuleuven.be
 % Website: http://homes.esat.kuleuven.be/~gbernard/index.html
-% Created: 17-October-2013; Last revision: 30-October-2013
+% Created: 17-October-2013; Last revision: 17-November-2013
 
 
 %------------- BEGIN CODE --------------
@@ -206,12 +206,6 @@ function [] = pb_create_RIRs(varargin)
     
     % Check whether all the parameters are correctly inserted
     if S.L_audio > 0 && S.L_mic > 0 && S.flag_rdim && S.flag_reverb && S.flag_lRIR
-        
-        % Disable figure during the calculation of the RIRs
-        InterfaceObj = findobj(S.fh,'Enable','on');
-        set(InterfaceObj,'Enable','off')        
-        
-        % Initialize the coordinate vectors
         xy_mic = zeros(S.L_mic,2);
         xy_audio = zeros(S.L_audio,2);
         
@@ -235,10 +229,7 @@ function [] = pb_create_RIRs(varargin)
 
         create_rirs(xy_mic,xy_audio,xy_noise,S.rdim*[1 1],S.reverb,S.fs,S.lRIR);
         ed = msgbox('RIRs created and stored in Computed_RIRs.mat!');
-        uiwait(ed);   
-        
-        % Re-enable figure's interface
-        set(InterfaceObj,'Enable','on')        
+        uiwait(ed);        
     else
         ed = errordlg('Some parameters are missing!','Error');
         set(ed, 'WindowStyle', 'modal');
@@ -392,25 +383,27 @@ function [] = pb_draw_DOA(varargin)
                 x_vector = 0:0.1:x_mic_avg;
 
                 if S.DOAs(k) == 0
-                    S.hDOAs(k) = line([x_mic_avg x_mic_avg],[y_mic_avg 5],...
+                    S.hDOAs_est(k) = line([x_mic_avg x_mic_avg],[y_mic_avg S.rdim],...
                         'Color','k','Linestyle','--','Linewidth',2);
                 elseif S.DOAs(k) == 180
-                    S.hDOAs(k) = line([x_mic_avg x_mic_avg],[y_mic_avg -5],...
+                    S.hDOAs_est(k) = line([x_mic_avg x_mic_avg],[y_mic_avg -S.rdim],...
                         'Color','k','Linestyle','--','Linewidth',2);
                 else
                     y_vector_est = sin((S.DOAs(k)+90)/180*pi)/cos((S.DOAs(k)+90)/180*pi)*(x_vector-x_mic_avg)...
                                + y_mic_avg;
                     y_vector_est(end) = y_mic_avg;
-                    y_vector_true = sin((S.DOA_true(k)+90)/180*pi)/cos((S.DOA_true(k)+90)/180*pi)*(x_vector-x_mic_avg)...
-                               + y_mic_avg;       
-                    y_vector_true(end) = y_mic_avg;                           
-                    hold on;
                     S.hDOAs_est(k) = plot(x_vector,y_vector_est,'--k','Linewidth',2);
-                    S.hDOAs_true(k) = plot(x_vector,y_vector_true,'r','Linewidth',1.5);
                 end
-
+                
+                hold on;
+                y_vector_true = sin((S.DOA_true(k)+90)/180*pi)/cos((S.DOA_true(k)+90)/180*pi)*(x_vector-x_mic_avg)...
+                           + y_mic_avg;       
+                y_vector_true(end) = y_mic_avg;   
+                S.hDOAs_true(k) = plot(x_vector,y_vector_true,'r','Linewidth',1.5);
+                
                 % Calculate the errors
-                S.DOA_error(k) = S.DOAs(k) - S.DOA_true(k);
+                [minerr,ind_minerr]=min(abs(S.DOAs(k) - S.DOA_true));
+                S.DOA_error(k) = S.DOAs(k) - S.DOA_true(ind_minerr);
                 tmpstr{k} = ['a',num2str(k),': ',num2str(S.DOA_error(k))];
             end
 
@@ -423,7 +416,7 @@ function [] = pb_draw_DOA(varargin)
             % Update the string and make the list of Error DOAs visible
             set(S.ls_error_DOAs,'String',tmpstr);      
         else
-            ed = errordlg({['The number of estimated DOAs you provided (',num2str(lDOAs_est),')'];'does not match the number of audio sources!'},'Error');
+            ed = errordlg({'The number of estimated DOAs you provided';'does not match the number of audio sources!'},'Error');
             set(ed, 'WindowStyle', 'modal');
             uiwait(ed);
         end
@@ -737,7 +730,7 @@ function [] = mh_help_about(varargin)
     else
         mb = msgbox({['Speech and Audio GUI v. ',S.myVer];...
             'Authors: Giuliano Bernardi';'              Alexander Bertrand';...
-            'October 25, 2013'},'About S&A GUI','help');
+            'November 17, 2013'},'About S&A GUI','help');
         uiwait(mb);      
     end
     

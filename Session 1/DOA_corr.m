@@ -1,5 +1,5 @@
 %% DOA_corr.m
-% group number = ?
+% group number = 4
 % group members: Wouter Lanneer & Philippe de Potter de ten Broeck
 
 clear; clc;

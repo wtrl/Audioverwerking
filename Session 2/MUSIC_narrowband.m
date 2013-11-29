@@ -21,7 +21,7 @@ N_noise = size(v_pos,1);
 % user defined file names of the WAV files to use for sources and noise
 speechfilename = cell(N_speech,3);
 speechfilename{1,1} = 'speech1.wav';
-% speechfilename{2,1} = 'speech2.wav';
+speechfilename{2,1} = 'speech2.wav';
 
 % noisefilename = cell(N_noise,3);
 % noisefilename{1,1} = 'Babble_noise1.wav';
@@ -35,6 +35,7 @@ nrOfSamples = fs_RIR*length_recmicsig;
 speechMatrix = zeros(nrOfSamples,N_speech);
 noiseMatrix = zeros(nrOfSamples,N_noise);
 mic = zeros(nrOfSamples,nrOfMics);
+noiseOnMic = zeros(nrOfSamples,nrOfMics);
 
 % read in all speech and noise audiofiles
 % resampling of speech and noise files and cut off to number of samples
@@ -49,6 +50,7 @@ end
 %     noiseTmp = resample(noisefilename{i,2},fs_RIR,noisefilename{i,3});
 %     noiseMatrix(:,i) = noiseTmp(1:nrOfSamples);
 % end
+% noiseMatrix = wgn(nrOfSamples,N_noise,1,'dBm'); % use wgn instead of noise signal
 
 % filter operation
 for i = 1:nrOfMics
@@ -58,9 +60,13 @@ for i = 1:nrOfMics
     end
     % add noise
 %     for j = 1:N_noise
-%         mic(:,i) = mic(:,i) + fftfilt(RIR_noise(:,i,j),noiseMatrix(:,j));
+%         noiseOnMic(:,i) = noiseOnMic(:,i) + fftfilt(RIR_noise(:,i,j),noiseMatrix(:,j));
 %     end
+%     mic(:,i) = mic(:,i) + noiseOnMic(:,i);
 end
+
+% calculate noise covariance matrix
+% noiseCovarianceMatrix = noiseOnMic'*noiseOnMic;
 
 % save microphone signals and sampling rate in file
 savefile = 'mic.mat';
@@ -131,25 +137,27 @@ E = V(:,N_speech+1:end);
 % dm
 dm = m_pos(:,2)-m_pos(1,2);
 
-
-theta = 0:0.5:180;
+% angle theta; must be in radians
+theta = 0:0.5*pi/180:pi; % in radians
 g_theta = zeros(nrOfMics, length(theta));
 c=340;
 for i = 1:length(theta)
     g_theta(:,i) = exp( -1i.*maxOmega*dm.*cos(theta(i))./c );
 end
 
-% Calculate pseudospectrum for each theta for the maximal freq bin
+% calculate pseudospectrum for each theta for the maximal freq bin
 Pseudospectrum = zeros(length(theta),1);
 for i = 1:length(theta)
     Pseudospectrum(i) =  1/( (g_theta(:,i)')*E*(E')*g_theta(:,i) );
 end
 
-[maxPseudo,maxThetaBin] = max(abs(Pseudospectrum));
-DOA_est = theta(maxThetaBin);
+[peaks,locs] = findpeaks(abs(Pseudospectrum),'SORTSTR','descend');
+maxThetaBins = locs(1:N_speech);
+maxsPseudo = peaks(1:N_speech);
+DOA_est = (180/pi)*theta(maxThetaBins);
 figure; plot(0:0.5:180,abs(Pseudospectrum));
-title('Pseudospectrum in function of angle theta');xlabel('theta');ylabel('pseudospectrum');
-hold on; stem(DOA_est,maxPseudo,'r');
+title('Pseudospectrum in function of angle theta');xlabel('theta [degrees]');ylabel('pseudospectrum');
+hold on; stem(DOA_est,maxsPseudo,'r');
 
 % save estimate of DOA in file
 savefile = 'DOA_est.mat';

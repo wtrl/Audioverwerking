@@ -38,6 +38,7 @@ noiseMatrix = zeros(nrOfSamples,N_noise);
 mic = zeros(nrOfSamples,nrOfMics);
 
 % read in all speech and noise audiofiles
+% resampling of speech and noise files and cut off to number of samples
 for i = 1:N_speech
     %     speechMatrix = wgn(NrOfSamples,1,1);
     [speechfilename{i,2}, speechfilename{i,3}] = audioread(speechfilename{i,1});
@@ -53,11 +54,11 @@ end
 
 % filter operation
 for i = 1:nrOfMics
-    %filter speech
+    % filter speech
     for j = 1:N_speech
         mic(:,i) = mic(:,i) + fftfilt(RIR_sources(:,i,j),speechMatrix(:,j));
     end
-    %add noise
+    % add noise
     %     for j = 1:N_noise
     %         mic(:,i) = mic(:,i) + fftfilt(RIR_noise(:,i,j),noiseMatrix(:,j));
     %     end

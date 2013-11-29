@@ -9,7 +9,7 @@ N_noise = size(v_pos,1);
 
 speechfilename = cell(N_speech,3);
 speechfilename{1,1} = 'speech1.wav';
-%speechfilename{2} = 'speech2.wav';
+%speechfilename{2,1} = 'speech2.wav';
 
 noisefilename = cell(N_noise,3);
 %noisefilename{1,1} = 'Babble_noise1.wav';

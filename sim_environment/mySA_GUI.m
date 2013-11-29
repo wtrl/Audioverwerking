@@ -401,12 +401,28 @@ function [] = pb_draw_DOA(varargin)
                 y_vector_true(end) = y_mic_avg;   
                 S.hDOAs_true(k) = plot(x_vector,y_vector_true,'r','Linewidth',1.5);
                 
-                % Calculate the errors
-                [minerr,ind_minerr]=min(abs(S.DOAs(k) - S.DOA_true));
-                S.DOA_error(k) = S.DOAs(k) - S.DOA_true(ind_minerr);
+%                 % Calculate the errors
+% %                 [minerr,S.ind_minerr]=min(abs(S.DOAs(k) - S.DOA_true));
+% %                 S.DOA_error(k) = S.DOAs(k) - S.DOA_true(ind_minerr);
+%                 S.DOA_error(k) = S.DOAs(k) - S.DOA_true(k);
+%                 tmpstr{k} = ['a',num2str(k),': ',num2str(S.DOA_error(k))];
+            end
+            
+            % Calculate the errors (each error is found as the minimum distance between each one of
+            % the estimated DOAs and the vector of real DOAs; the element of the real DOAs vector
+            % selected at each iteration is then removed so that the next error will be calculated
+            % on a reduced real DOAs vector)
+            [minerr,ind_minerr]=min(abs(S.DOAs(1) - S.DOA_true));
+            S.DOA_error(1) = S.DOAs(1) - S.DOA_true(ind_minerr);
+            DOAs_reduced = S.DOA_true(setxor(1:length(S.DOA_true),ind_minerr));
+            tmpstr{1} = ['a',num2str(1),': ',num2str(S.DOA_error(1))];
+            
+            for k = 2:S.L_audio
+                [minerr,ind_minerr]=min(abs(S.DOAs(k) - DOAs_reduced));
+                S.DOA_error(k) = S.DOAs(k) - DOAs_reduced(ind_minerr);
+                DOAs_reduced = DOAs_reduced(setxor(1:length(DOAs_reduced),ind_minerr));
                 tmpstr{k} = ['a',num2str(k),': ',num2str(S.DOA_error(k))];
             end
-
 
 
             % Enable the reset DOAs button
@@ -730,7 +746,7 @@ function [] = mh_help_about(varargin)
     else
         mb = msgbox({['Speech and Audio GUI v. ',S.myVer];...
             'Authors: Giuliano Bernardi';'              Alexander Bertrand';...
-            'November 17, 2013'},'About S&A GUI','help');
+            'November 26, 2013'},'About S&A GUI','help');
         uiwait(mb);      
     end
     

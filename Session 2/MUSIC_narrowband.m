@@ -59,10 +59,10 @@ for i = 1:nrOfMics
         mic(:,i) = mic(:,i) + fftfilt(RIR_sources(:,i,j),speechMatrix(:,j));
     end
     % add noise
-%     for j = 1:N_noise
-%         noiseOnMic(:,i) = noiseOnMic(:,i) + fftfilt(RIR_noise(:,i,j),noiseMatrix(:,j));
-%     end
-%     mic(:,i) = mic(:,i) + noiseOnMic(:,i);
+    %     for j = 1:N_noise
+    %         noiseOnMic(:,i) = noiseOnMic(:,i) + fftfilt(RIR_noise(:,i,j),noiseMatrix(:,j));
+    %     end
+    %     mic(:,i) = mic(:,i) + noiseOnMic(:,i);
 end
 
 % calculate noise covariance matrix
@@ -92,49 +92,47 @@ for i = 1:nrOfMics
     [S(:,i,:),F,~,P(:,i,:)] = spectrogram(x,window,noverlap,nfft,fs_RIR);
 end
 
-% alternative way of calculating power in each frequency bin
-% P_total = zeros(NrOfBins,NrOfMics);
-% % average out time
-% for i = 1:NrOfMics
-%     for j =1:NrOfFrames
-%      P_total(:,i) = P_total(:,i) + P(:,i,j);
-%     end
-% end
-% % average out mics
-% P_total = mean(P_total,2);
-%
-% % S_avg = zeros(NrOfBins, NrOfMics);
-% % for t=1:NrOfFrames
-% %     S_avg = S_avg + S(:,:,t);
-% % end
-%
-%
-% [~,maxFreqBin2] = max(P_total);
-% maxOmega2 = 2*pi*F(maxFreqBin2);
-
-%% DOA
-binCorrMatrix = zeros(nrOfMics, nrOfMics, nrOfBins);
-for t = 1:nrOfFrames
-    for i = 1:nrOfBins
-        binCorrMatrix(:,:,i) = binCorrMatrix(:,:,i) + S(i,:,t)'*S(i,:,t);
-    end
+%% Select frequency bin with the highest power
+P_avg = zeros(nrOfBins,1);
+% average out over time and over all the microphones
+for i = 1:nrOfMics % average over all the microphones
+    P_avg = P_avg + sum(P(:,i,:),3); % the sum command averages over all time frames
 end
 
-PSD = zeros(nrOfBins,1);
-for i = 1:nrOfBins
-    PSD(i) = trace(binCorrMatrix(:,:,i));
-end
-
-[maxPSD,maxFreqBin] = max(abs(PSD));
+[maxP_avg,maxFreqBin] = max(P_avg);
 maxOmega = 2*pi*F(maxFreqBin);
-figure; plot(abs(PSD));
-title('Signal power in each frequency bin');xlabel('frequency bins');ylabel('signal power');
-hold on; stem(maxFreqBin,maxPSD,'r');
 
-[V,D] = eigs(binCorrMatrix(:,:,maxFreqBin),nrOfMics);
+% plot the PSD
+figure;plot(P_avg);
+title('Signal power in each frequency bin');xlabel('frequency bins');ylabel('signal power');
+hold on; stem(maxFreqBin,maxP_avg,'r');
+
+%% Evaluate the pseudospectrum
+% calculate correlation matrix for the frequency bin with highest power
+y = zeros(nrOfMics,nrOfFrames);
+for i = 1:nrOfMics
+    y(i,:) = S(maxFreqBin,i,:);
+end
+R = y*y';
+
+% % alternative calculation of PSD
+% % this however requires to calculate the correlation matrix for each
+% % frequency bin
+% PSD = zeros(nrOfBins,1);
+% for i = 1:nrOfBins
+%     PSD(i) = trace(binCorrMatrix(:,:,i));
+% end
+%
+% [maxPSD,maxFreqBin2] = max(abs(PSD));
+% maxOmega2 = 2*pi*F(maxFreqBin2);
+% figure; plot(abs(PSD));
+% title('Signal power in each frequency bin');xlabel('frequency bins');ylabel('signal power');
+% hold on; stem(maxFreqBin2,maxPSD,'r');
+
+[V,D] = eigs(R,nrOfMics);
 E = V(:,N_speech+1:end);
 
-% dm
+% distances between microphones in the array relative to first microphone
 dm = m_pos(:,2)-m_pos(1,2);
 
 % angle theta; must be in radians
@@ -142,20 +140,24 @@ theta = 0:0.5*pi/180:pi; % in radians
 g_theta = zeros(nrOfMics, length(theta));
 c=340;
 for i = 1:length(theta)
-    g_theta(:,i) = exp( -1i.*maxOmega*dm.*cos(theta(i))./c );
+    g_theta(:,i) = exp( -1i.*maxOmega*(-dm.*cos(theta(i))./c) );
 end
 
-% calculate pseudospectrum for each theta for the maximal freq bin
+% calculate pseudospectrum for each angle for the maximal frequency bin
 Pseudospectrum = zeros(length(theta),1);
 for i = 1:length(theta)
     Pseudospectrum(i) =  1/( (g_theta(:,i)')*E*(E')*g_theta(:,i) );
 end
 
+%% DOA estimation
+% find peaks in the pseudospectrum
 [peaks,locs] = findpeaks(abs(Pseudospectrum),'SORTSTR','descend');
 maxThetaBins = locs(1:N_speech);
 maxsPseudo = peaks(1:N_speech);
 DOA_est = (180/pi)*theta(maxThetaBins);
 figure; plot(0:0.5:180,abs(Pseudospectrum));
+
+% plot pseudospectrum together with selected peaks
 title('Pseudospectrum in function of angle theta');xlabel('theta [degrees]');ylabel('pseudospectrum');
 hold on; stem(DOA_est,maxsPseudo,'r');
 

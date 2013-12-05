@@ -5,7 +5,7 @@
 clear; clc;
 addpath(genpath('..'));
 %% Load RIRs and set parameters
-load('./Computed_RIRs.mat');
+load('Computed_RIRs.mat');
 
 % check RIR sampling frequency; must be 44.1kHz
 if(fs_RIR ~= 44100)
@@ -68,7 +68,7 @@ save(savefile, 'mic', 'fs_RIR');
 
 %% Short Time Fourier Transform
 % window length
-window = 1024;
+window = 512;
 % 50% overlap
 noverlap = window/2;
 % number of points for the DFT
@@ -86,23 +86,23 @@ for i = 1:nrOfMics
     [S(:,i,:),F,~,P(:,i,:)] = spectrogram(x,window,noverlap,nfft,fs_RIR);
 end
 
-% alternative way of calculating power in each frequency bin
-% P_total = zeros(NrOfBins,NrOfMics);
+% % alternative way of calculating power in each frequency bin
+% P_total = zeros(nrOfBins,nrOfMics);
 % % average out time
-% for i = 1:NrOfMics
-%     for j =1:NrOfFrames
+% for i = 1:nrOfMics
+%     for j =1:nrOfFrames
 %      P_total(:,i) = P_total(:,i) + P(:,i,j);
 %     end
 % end
 % % average out mics
 % P_total = mean(P_total,2);
-%
+% 
 % % S_avg = zeros(NrOfBins, NrOfMics);
 % % for t=1:NrOfFrames
 % %     S_avg = S_avg + S(:,:,t);
 % % end
-%
-%
+% 
+% 
 % [~,maxFreqBin2] = max(P_total);
 % maxOmega2 = 2*pi*F(maxFreqBin2);
 

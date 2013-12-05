@@ -40,7 +40,7 @@ mic = zeros(nrOfSamples,nrOfMics);
 % read in all speech and noise audiofiles
 % resampling of speech and noise files and cut off to number of samples
 for i = 1:N_speech
-    %     speechMatrix = wgn(NrOfSamples,1,1);
+    %     speechMatrix = wgn(nrOfSamples,1,1);
     [speechfilename{i,2}, speechfilename{i,3}] = audioread(speechfilename{i,1});
     speechTmp = resample(speechfilename{i,2},fs_RIR,speechfilename{i,3});
     speechMatrix(:,i) = speechTmp(1:nrOfSamples);

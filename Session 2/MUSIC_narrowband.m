@@ -21,7 +21,7 @@ N_noise = size(v_pos,1);
 % user defined file names of the WAV files to use for sources and noise
 speechfilename = cell(N_speech,3);
 speechfilename{1,1} = 'speech1.wav';
-% speechfilename{2,1} = 'speech2.wav';
+speechfilename{2,1} = 'speech2.wav';
 
 % noisefilename = cell(N_noise,3);
 % noisefilename{1,1} = 'Babble_noise1.wav';
@@ -35,6 +35,7 @@ nrOfSamples = fs_RIR*length_recmicsig;
 speechMatrix = zeros(nrOfSamples,N_speech);
 noiseMatrix = zeros(nrOfSamples,N_noise);
 mic = zeros(nrOfSamples,nrOfMics);
+noiseOnMic = zeros(nrOfSamples,nrOfMics);
 
 % read in all speech and noise audiofiles
 % resampling of speech and noise files and cut off to number of samples
@@ -49,6 +50,7 @@ end
 %     noiseTmp = resample(noisefilename{i,2},fs_RIR,noisefilename{i,3});
 %     noiseMatrix(:,i) = noiseTmp(1:nrOfSamples);
 % end
+% noiseMatrix = wgn(nrOfSamples,N_noise,1,'dBm'); % use wgn instead of noise signal
 
 % filter operation
 for i = 1:nrOfMics
@@ -57,10 +59,14 @@ for i = 1:nrOfMics
         mic(:,i) = mic(:,i) + fftfilt(RIR_sources(:,i,j),speechMatrix(:,j));
     end
     % add noise
-%     for j = 1:N_noise
-%         mic(:,i) = mic(:,i) + fftfilt(RIR_noise(:,i,j),noiseMatrix(:,j));
-%     end
+    %     for j = 1:N_noise
+    %         noiseOnMic(:,i) = noiseOnMic(:,i) + fftfilt(RIR_noise(:,i,j),noiseMatrix(:,j));
+    %     end
+    %     mic(:,i) = mic(:,i) + noiseOnMic(:,i);
 end
+
+% calculate noise covariance matrix
+% noiseCovarianceMatrix = noiseOnMic'*noiseOnMic;
 
 % save microphone signals and sampling rate in file
 savefile = 'mic.mat';
@@ -86,6 +92,7 @@ for i = 1:nrOfMics
     [S(:,i,:),F,~,P(:,i,:)] = spectrogram(x,window,noverlap,nfft,fs_RIR);
 end
 
+<<<<<<< HEAD
 % % alternative way of calculating power in each frequency bin
 % P_total = zeros(nrOfBins,nrOfMics);
 % % average out time
@@ -117,39 +124,76 @@ end
 PSD = zeros(nrOfBins,1);
 for i = 1:nrOfBins
     PSD(i) = trace(binCorrMatrix(:,:,i));
+=======
+%% Select frequency bin with the highest power
+P_avg = zeros(nrOfBins,1);
+% average out over time and over all the microphones
+for i = 1:nrOfMics % average over all the microphones
+    P_avg = P_avg + sum(P(:,i,:),3); % the sum command averages over all time frames
+>>>>>>> origin/master
 end
 
-[maxPSD,maxFreqBin] = max(abs(PSD));
+[maxP_avg,maxFreqBin] = max(P_avg);
 maxOmega = 2*pi*F(maxFreqBin);
-figure; plot(abs(PSD));
-title('Signal power in each frequency bin');xlabel('frequency bins');ylabel('signal power');
-hold on; stem(maxFreqBin,maxPSD,'r');
 
-[V,D] = eigs(binCorrMatrix(:,:,maxFreqBin),nrOfMics);
+% plot the PSD
+figure;plot(P_avg);
+title('Signal power in each frequency bin');xlabel('frequency bins');ylabel('signal power');
+hold on; stem(maxFreqBin,maxP_avg,'r');
+
+%% Evaluate the pseudospectrum
+% calculate correlation matrix for the frequency bin with highest power
+y = zeros(nrOfMics,nrOfFrames);
+for i = 1:nrOfMics
+    y(i,:) = S(maxFreqBin,i,:);
+end
+R = y*y';
+
+% % alternative calculation of PSD
+% % this however requires to calculate the correlation matrix for each
+% % frequency bin
+% PSD = zeros(nrOfBins,1);
+% for i = 1:nrOfBins
+%     PSD(i) = trace(binCorrMatrix(:,:,i));
+% end
+%
+% [maxPSD,maxFreqBin2] = max(abs(PSD));
+% maxOmega2 = 2*pi*F(maxFreqBin2);
+% figure; plot(abs(PSD));
+% title('Signal power in each frequency bin');xlabel('frequency bins');ylabel('signal power');
+% hold on; stem(maxFreqBin2,maxPSD,'r');
+
+[V,D] = eigs(R,nrOfMics);
 E = V(:,N_speech+1:end);
 
-% dm
+% distances between microphones in the array relative to first microphone
 dm = m_pos(:,2)-m_pos(1,2);
 
-
-theta = 0:0.5:180;
+% angle theta; must be in radians
+theta = 0:0.5*pi/180:pi; % in radians
 g_theta = zeros(nrOfMics, length(theta));
 c=340;
 for i = 1:length(theta)
-    g_theta(:,i) = exp( -1i.*maxOmega*dm.*cos(theta(i))./c );
+    g_theta(:,i) = exp( -1i.*maxOmega*(-dm.*cos(theta(i))./c) );
 end
 
-% Calculate pseudospectrum for each theta for the maximal freq bin
+% calculate pseudospectrum for each angle for the maximal frequency bin
 Pseudospectrum = zeros(length(theta),1);
 for i = 1:length(theta)
     Pseudospectrum(i) =  1/( (g_theta(:,i)')*E*(E')*g_theta(:,i) );
 end
 
-[maxPseudo,maxThetaBin] = max(abs(Pseudospectrum));
-DOA_est = theta(maxThetaBin);
+%% DOA estimation
+% find peaks in the pseudospectrum
+[peaks,locs] = findpeaks(abs(Pseudospectrum),'SORTSTR','descend');
+maxThetaBins = locs(1:N_speech);
+maxsPseudo = peaks(1:N_speech);
+DOA_est = (180/pi)*theta(maxThetaBins);
 figure; plot(0:0.5:180,abs(Pseudospectrum));
-title('Pseudospectrum in function of angle theta');xlabel('theta');ylabel('pseudospectrum');
-hold on; stem(DOA_est,maxPseudo,'r');
+
+% plot pseudospectrum together with selected peaks
+title('Pseudospectrum in function of angle theta');xlabel('theta [degrees]');ylabel('pseudospectrum');
+hold on; stem(DOA_est,maxsPseudo,'r');
 
 % save estimate of DOA in file
 savefile = 'DOA_est.mat';

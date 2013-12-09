@@ -20,10 +20,10 @@ speechfilename{1,1} = 'speech1.wav';
 speechfilename{2,1} = 'speech2.wav';
 
 noisefilename = cell(N_noise,3);
-noisefilename{1,1} = 'Babble_noise1.wav'; %'White_noise1.wav';
+noisefilename{1,1} = 'Babble_noise1.wav'; %'speech2.wav'; 'White_noise1.wav'; 'Babble_noise1.wav'; 
 
 % length of the recorded microphone signals in seconds
-length_recmicsig = 10;
+length_recmicsig = 4;
 % number of samples in the recording length
 nrOfSamples = fs_RIR*length_recmicsig;
 

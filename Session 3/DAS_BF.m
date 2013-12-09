@@ -123,7 +123,7 @@ end
 
 
 %speech + noise
-DAS_out = DAS_speech + DAS_noise;
+DAS_out = (DAS_speech + DAS_noise)./nrOfMics;
 
 %calculate SNR_out
 
@@ -133,4 +133,5 @@ P_noise_DAS = sum(DAS_noise(:,1).^2)./(nrOfSamples+maxDelay);
 
 SNR_out_DAS = 10*log10(P_speech_DAS./P_noise_DAS)
 
-figure; plot(1:nrOfSamples,mic(:,1),'b',1:nrOfSamples,DAS_out(1:nrOfSamples)*max(mic(:,1))/max(DAS_out),'r');
+%plot first microphone signal and DAS filter output
+figure; plot(1:nrOfSamples,mic(:,1),'b',1:nrOfSamples,DAS_out(1:nrOfSamples),'r');

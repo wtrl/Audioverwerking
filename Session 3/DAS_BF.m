@@ -99,26 +99,34 @@ save(savefile, 'DOA_est');
 
 delay_m = round(-dm*cos((pi/180)*DOA_est(1))*fs_RIR./c);
 maxDelay = max(abs(delay_m));
-DAS_noise = zeros(nrOfSamples+maxDelay,1);
-DAS_speech = zeros(nrOfSamples+maxDelay,1);
+D_noise = zeros(nrOfSamples+maxDelay,nrOfMics);
+D_speech = zeros(nrOfSamples+maxDelay,nrOfMics);
+% DAS_noise = zeros(nrOfSamples+maxDelay,1);
+% DAS_speech = zeros(nrOfSamples+maxDelay,1);
 if(delay_m(2)>0)
     %noise
     for i = 1:nrOfMics
-        DAS_noise = DAS_noise + [zeros(maxDelay-delay_m(i),1); noise(: ,i); zeros(delay_m(i),1)] ;
+       D_noise(:,i) = [zeros(maxDelay-delay_m(i),1); noise(: ,i); zeros(delay_m(i),1)] ;
     end
+    DAS_noise = sum(D_noise,2);
     %speech
     for i = 1:nrOfMics
-        DAS_speech = DAS_speech + [zeros(maxDelay-delay_m(i),1); speech(: ,i); zeros(delay_m(i),1)] ;
+        D_speech(:,i) = [zeros(maxDelay-delay_m(i),1); speech(: ,i); zeros(delay_m(i),1)] ;
     end
+    DAS_speech = sum(D_speech,2);
+    VAD = [zeros(maxDelay,1); VAD];
 else
     %noise
     for i = 1:nrOfMics
-        DAS_noise = DAS_noise + [zeros(-delay_m(i),1); noise(: ,i); zeros(maxDelay+delay_m(i),1)] ;
+        D_noise(:,i) = [zeros(-delay_m(i),1); noise(: ,i); zeros(maxDelay+delay_m(i),1)] ;
     end
+     DAS_noise = sum(D_noise,2);
     %speech
     for i = 1:nrOfMics
-        DAS_speech = DAS_speech + [zeros(-delay_m(i),1); speech(: ,i); zeros(maxDelay+delay_m(i),1)] ;
+         D_speech(:,i) = [zeros(-delay_m(i),1); speech(: ,i); zeros(maxDelay+delay_m(i),1)] ;
     end
+    DAS_speech = sum(D_speech,2);
+    VAD = [VAD; zeros(maxDelay,1)];
 end
 
 
@@ -127,11 +135,17 @@ DAS_out = (DAS_speech + DAS_noise)./nrOfMics;
 
 %calculate SNR_out
 
-VAD=abs(DAS_speech(:,1))>std(DAS_speech(:,1))*1e-3;
+% VAD=abs(DAS_speech)>std(DAS_speech)*1e-3;
 P_speech_DAS = 1./length(VAD==1)*(DAS_speech(VAD==1,1).'*DAS_speech(VAD==1,1));
 P_noise_DAS = sum(DAS_noise(:,1).^2)./(nrOfSamples+maxDelay);
 
 SNR_out_DAS = 10*log10(P_speech_DAS./P_noise_DAS)
 
 %plot first microphone signal and DAS filter output
-figure; plot(1:nrOfSamples,mic(:,1),'b',1:nrOfSamples,DAS_out(1:nrOfSamples),'r');
+figure;
+if(delay_m(2)>0)
+    plot(1:nrOfSamples,mic(:,1),'b',1:nrOfSamples,DAS_out(maxDelay+1:maxDelay+nrOfSamples),'r');
+else
+    plot(1:nrOfSamples,mic(:,1),'b',1:nrOfSamples,DAS_out(1:nrOfSamples),'r');
+end
+hold on;

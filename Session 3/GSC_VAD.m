@@ -28,9 +28,9 @@ BM = [1 -1 0 0 0;
   VAD = [zeros(L/2,1); VAD];
   for k=1:nrOfDelayedSamples+L/2
       %input to multi channel adaptive filter
-      x_k(1:end-1,:) = x_k(2:end,:);
-      x_k(end,:) = BM*D_mic(k,:).';
-      noiseRef(k,:) = x_k(end,:);
+      x_k(2:end,:) = x_k(1:end-1,:);
+      x_k(1,:) = BM*D_mic(k,:).';
+      noiseRef(k,:) = x_k(1,:);
       %filter
       d_pred_k = (w_k.')*x_k(:);
       

@@ -7,7 +7,7 @@ DAS_BF;
 %filter length of fq
 L=1024;
 delay = L/2;
-mu=0.1;
+mu=1.2;
 %Delayed microphone signals
 D_mic = D_speech + D_noise;
 
@@ -27,9 +27,9 @@ BM = [1 -1 0 0 0;
   D_mic = [D_mic; zeros(L/2, nrOfMics)];
   for k=1:nrOfDelayedSamples+L/2
       %input to multi channel adaptive filter
-      x_k(1:end-1,:) = x_k(2:end,:);
-      x_k(end,:) = BM*D_mic(k,:).';
-      noiseRef(k,:) = x_k(end,:);
+      x_k(2:end,:) = x_k(1:end-1,:);
+      x_k(1,:) = BM*D_mic(k,:).';
+      noiseRef(k,:) = x_k(1,:);
       %adaptive filter
       d_pred_k = (w_k.')*x_k(:);
       

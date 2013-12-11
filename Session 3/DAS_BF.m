@@ -103,6 +103,7 @@ D_noise = zeros(nrOfSamples+maxDelay,nrOfMics);
 D_speech = zeros(nrOfSamples+maxDelay,nrOfMics);
 % DAS_noise = zeros(nrOfSamples+maxDelay,1);
 % DAS_speech = zeros(nrOfSamples+maxDelay,1);
+plot_offset =0;
 if(delay_m(2)>0)
     %noise
     for i = 1:nrOfMics
@@ -115,6 +116,7 @@ if(delay_m(2)>0)
     end
     DAS_speech = sum(D_speech,2);
     VAD = [zeros(maxDelay,1); VAD];
+    plot_offset = maxDelay;
 else
     %noise
     for i = 1:nrOfMics
@@ -143,9 +145,5 @@ SNR_out_DAS = 10*log10(P_speech_DAS./P_noise_DAS)
 
 %plot first microphone signal and DAS filter output
 figure;
-if(delay_m(2)>0)
-    plot(1:nrOfSamples,mic(:,1),'b',1:nrOfSamples,DAS_out(maxDelay+1:maxDelay+nrOfSamples),'r');
-else
-    plot(1:nrOfSamples,mic(:,1),'b',1:nrOfSamples,DAS_out(1:nrOfSamples),'r');
-end
+plot(1:nrOfSamples,mic(:,1),'b',1:nrOfSamples,DAS_out(plot_offset+1:plot_offset+nrOfSamples),'r');
 hold on;

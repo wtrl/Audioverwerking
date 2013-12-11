@@ -25,12 +25,13 @@ BM = [1 -1 0 0 0;
   GSC_out = zeros(nrOfDelayedSamples+L/2,1);
   DAS_out = [zeros(L/2,1); DAS_out]; %introduce delay of L/2 taps
   D_mic = [D_mic; zeros(L/2, nrOfMics)];
+  VAD = [zeros(L/2,1); VAD];
   for k=1:nrOfDelayedSamples+L/2
       %input to multi channel adaptive filter
       x_k(1:end-1,:) = x_k(2:end,:);
       x_k(end,:) = BM*D_mic(k,:).';
       noiseRef(k,:) = x_k(end,:);
-      %adaptive filter
+      %filter
       d_pred_k = (w_k.')*x_k(:);
       
       %fixed filter
@@ -40,10 +41,12 @@ BM = [1 -1 0 0 0;
       GSC_out(k) = d_k-d_pred_k;
       
       %update adaptive filtertaps 
-      w_k = w_k + mu./norm(x_k(:)).*x_k(:).*(d_k - d_pred_k); 
-
+      if(VAD(k)==0) %No speech activity
+        w_k = w_k + mu./norm(x_k(:)).*x_k(:).*(d_k - d_pred_k); 
+      end
   end
   GSC_out = GSC_out(L/2+1:L/2+nrOfDelayedSamples); %remove delay L/2 again
+  VAD = VAD(L/2+1:end);
 
 %SNR GSC OUT
 P_speech_GSC = 1./length(VAD==1)*(GSC_out(VAD==1).'*GSC_out(VAD==1));

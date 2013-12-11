@@ -34,13 +34,13 @@ noiseMatrix = zeros(nrOfSamples,N_noise);
 % read in all speech and noise audiofiles
 % resampling of speech and noise files and cut off to number of samples
 for i = 1:N_speech
-    [speechfilename{i,2}, speechfilename{i,3}] = wavread(speechfilename{i,1});
+    [speechfilename{i,2}, speechfilename{i,3}] = audioread(speechfilename{i,1});
     speechTmp = resample(speechfilename{i,2},fs_RIR,speechfilename{i,3});
     speechMatrix(:,i) = speechTmp(1:nrOfSamples);
 end
 
 for i = 1:N_noise
-    [noisefilename{i,2}, noisefilename{i,3}] = wavread(noisefilename{i,1});
+    [noisefilename{i,2}, noisefilename{i,3}] = audioread(noisefilename{i,1});
     noiseTmp = resample(noisefilename{i,2},fs_RIR,noisefilename{i,3});
     noiseMatrix(:,i) = noiseTmp(1:nrOfSamples);
 end

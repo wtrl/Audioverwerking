@@ -7,7 +7,7 @@ DAS_BF;
 %filter length of fq
 L=1024;
 delay = L/2;
-mu=1.2;
+mu=0.1;
 %Delayed microphone signals
 D_mic = D_speech + D_noise;
 

@@ -104,7 +104,7 @@ D_speech = zeros(nrOfSamples+maxDelay,nrOfMics);
 % DAS_noise = zeros(nrOfSamples+maxDelay,1);
 % DAS_speech = zeros(nrOfSamples+maxDelay,1);
 plot_offset =0;
-if(delay_m(2)>0)
+if(sum(delay_m(:))>0)
     %noise
     for i = 1:nrOfMics
        D_noise(:,i) = [zeros(maxDelay-delay_m(i),1); noise(: ,i); zeros(delay_m(i),1)] ;

@@ -20,7 +20,7 @@ speechfilename{1,1} = 'speech1.wav';
 speechfilename{2,1} = 'speech2.wav';
 
 noisefilename = cell(N_noise,3);
-noisefilename{1,1} = 'Babble_noise1.wav'; %'speech2.wav'; 'White_noise1.wav'; 'Babble_noise1.wav'; 
+noisefilename{1,1} = 'speech2.wav'; %'speech2.wav'; 'White_noise1.wav'; 'Babble_noise1.wav'; 
 
 % length of the recorded microphone signals in seconds
 length_recmicsig = 10;
@@ -62,8 +62,8 @@ for i = 1:nrOfMics
 end
 power = 10*log10(sum(speech(:,1).^2)./nrOfSamples);
 % add white gaussian noise
-noise = wgn(nrOfSamples,nrOfMics,power-10,'dbW')+noise;
-mic = speech +noise;
+% noise = wgn(nrOfSamples,nrOfMics,power-10,'dbW')+noise;
+% mic = speech +noise;
 
 % calculate noise covariance matrix
 % noiseCovarianceMatrix = noiseOnMic'*noiseOnMic;
@@ -71,6 +71,8 @@ mic = speech +noise;
 VAD=abs(speech(:,1))>std(speech(:,1))*1e-3;
 
 P_speech = 1./length(VAD==1)*(speech(VAD==1,1).'*speech(VAD==1,1));
+noise = wgn(nrOfSamples,nrOfMics,10*log10(P_speech)-10,'dbW')+noise;
+mic = speech +noise;
 P_noise = sum(noise(:,1).^2)./nrOfSamples;
 
 SNR_in = 10*log10(P_speech./P_noise)
